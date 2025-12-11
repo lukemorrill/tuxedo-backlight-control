@@ -1,3 +1,0 @@
-#!/bin/bash
-
-pylint --rcfile $PWD/.pylintrc $PWD/src/usr/share/tuxedo-backlight-control/**.py

@@ -1,24 +1,15 @@
-#!/usr/bin/pkexec /usr/bin/python3
-
-import os
+import sys
 import re
+from pathlib import Path
 
-from colors import colors
-
-if os.path.isfile('/etc/tuxedo-backlight-control/colors.conf'):
-    COLORS_CONF = open('/etc/tuxedo-backlight-control/colors.conf')
-    for line in COLORS_CONF:
-        match = re.search('([\da-z_]+)=([\da-f]{6})', line)
-        if match and len(match.groups()) == 2:
-            colors[match.groups()[0]] = match.groups()[1]
 
 class BacklightControl():
     """
     Abstraction on top of tuxedo_keyboard C driver interface for keyboard backlight
     """
 
-    DEVICE_PATH = '/sys/devices/platform/tuxedo_keyboard/'
-    MODULE_PATH = '/sys/module/tuxedo_keyboard'
+    DEVICE_PATH = Path('/sys/devices/platform/tuxedo_keyboard/')
+    MODULE_PATH = Path('/sys/module/tuxedo_keyboard')
     VERSION = '0.8.0'
 
     modes = (
@@ -32,8 +23,30 @@ class BacklightControl():
         'wave'
     )
 
-    colors = colors
+    colors = {
+        'aqua': '00FFFF',
+        'blue': '0000FF',
+        'crimson': 'DC143C',
+        'fuchsia': 'FF00FF',
+        'gray': '808080',
+        'green': '008000',
+        'lime': '00FF00',
+        'maroon': '800000',
+        'navy': '000080',
+        'olive': '808000',
+        'orange': 'FFA500',
+        'pink': 'FFC0CB',
+        'purple': '800080',
+        'red': 'FF0000',
+        'silver': 'C0C0C0',
+        'teal': '008080',
+        'turquoise': '40E0D0',
+        'white': 'FFFFFF',
+        'yellow': 'FFFF00'
+    }
+
     regions = ('left', 'center', 'right', 'extra')
+    
     params = (
         'state',
         'mode',
@@ -45,12 +58,19 @@ class BacklightControl():
     )
 
     @staticmethod
-    def get_device_param(prop: str):
-        """ read driver param value directly from '/sys/devices/platform/tuxedo_keyboard/' """
+    def validate_install():
+        """
+        Ensure the Tuxedo keyboard module is installed.
+        """
+        if not BacklightControl.DEVICE_PATH.exists():
+            print(f"Error: The tuxedo_keyboard module is not installed at {BacklightControl.DEVICE_PATH}")
+            sys.exit(1)
 
-        if os.path.isfile(BacklightControl.DEVICE_PATH + prop):
-            return open(BacklightControl.DEVICE_PATH + prop).read()
-        return None
+    @staticmethod
+    def get_device_param(prop: str) -> str | None:
+        """ read driver param value directly from '/sys/devices/platform/tuxedo_keyboard/' """
+        prop_file = BacklightControl.DEVICE_PATH / prop
+        return prop_file.readtext() if prop_file.exists() else None
 
     @staticmethod
     def get_device_color(region: str):
@@ -67,9 +87,7 @@ class BacklightControl():
 
     @staticmethod
     def set_device_param(prop: str, value: str):
-        filehandle = open(BacklightControl.DEVICE_PATH + prop, mode='w')
-        filehandle.write(value)
-        filehandle.close()
+        (BacklightControl.DEVICE_PATH / prop).write_text(value)
 
     @staticmethod
     def set_device_color(region: str, color: str):
